@@ -22,8 +22,9 @@ public class GoldGameBot {
 	private static boolean isGameRunning = false;
 	private static boolean isBetSet = false;
 	private static boolean isGameClosed = false;
-	static int betAmount;
-	static List<String> players;
+	private static int betAmount;
+	private static List<Player> playerList;
+	private static int numPlayersRolled = 0;
 
 
 	public static void main(String[] args) {
@@ -79,26 +80,25 @@ public class GoldGameBot {
 						if(isBound && fromBoundChannel && message.getContent().toUpperCase().startsWith(commandPrefix + "GOLDGAME")){
 
 							String action = message.getContent().toUpperCase().substring(10);
+							System.out.println("Action = " + action);
 							
-							// TODO Need to adjust this to test for if the command has a follow-up word or not
-							String[] parsed = action.split(" ", 2);
-							String word = parsed[0];
-
+							
 							int command = 0;
-
-							if(word.equalsIgnoreCase("start"))
+							
+							// DETERMINE WHICH COMMAND WAS USED
+							if(action.toUpperCase().contains("START")){
 								command = 1;
-							if(word.equalsIgnoreCase("bet"))
+							}else if(action.toUpperCase().contains("BET")){
 								command = 2;
-							if(word.equalsIgnoreCase("add"))
+							}else if(action.toUpperCase().contains("ADD")){
 								command = 3;
-							if(word.equalsIgnoreCase("close"))
+							}else if(action.toUpperCase().contains("CLOSE")){
 								command = 4;
-							if(word.equalsIgnoreCase("roll"))
+							}else if(action.toUpperCase().contains("ROLL")){
 								command = 5;
-
-
-
+							}
+							
+							// EXECUTE THE COMMAND
 							switch(command){
 
 							case 1: // START
@@ -117,15 +117,15 @@ public class GoldGameBot {
 											+ "To join the current Gold Game, please use the command '" + commandPrefix + 
 											"GOLDGAME ADD'" );
 									isBetSet = true;
-									players = new ArrayList<String>();
 								}else{
 									message.reply("@" + message.getAuthor().getId() + " No Gold Game is currently in-progress.");
 								}
 								break;
 							case 3: // ADD
 								if(isBetSet && isGameRunning && !isGameClosed){
-									String player = message.getAuthor().getName();
-									players.add(player);
+									String playerId = message.getAuthor().getId();
+									Player player = new Player(playerId);
+									playerList.add(player);
 									message.reply("@" + message.getAuthor().getId() + " has joined this round!");
 								}else{
 									if(!isBetSet)
@@ -135,7 +135,7 @@ public class GoldGameBot {
 								}
 								break;
 							case 4: // CLOSE
-								if(isBetSet && isGameRunning && (players.size() >= 2) ){
+								if(isBetSet && isGameRunning && (playerList.size() >= 2) ){
 									isGameClosed = true;
 									message.reply("Registration for this round is now closed!  Roll using '" + commandPrefix + "GOLDGAME ROLL'");
 								}else{
@@ -143,14 +143,70 @@ public class GoldGameBot {
 								}
 								break;
 							case 5: // ROLL
-								List<String> hasRolled = new ArrayList<String>();
+								String playerID = message.getAuthor().getId();
+								int result = rolled();
 								
-								// TODO need to add code to handle the rolling
+								for(int n = 0; n < playerList.size(); n++){
+									if(playerList.get(n).getPlayerID().equalsIgnoreCase(playerID)){
+										playerList.get(n).setResult(result);
+									}
+								}
 								
-								hasRolled.add(message.getAuthor().getName());
+								message.reply("@" + playerID + " has rolled " + result);
+								
+								Player largest = null;
+								Player smallest = null;
+								if(numPlayersRolled == playerList.size()){
+									
+									message.reply("\n\n-------------------------------------------\n\n");
+									
+									largest = playerList.get(0);
+									smallest = playerList.get(0);
+									
+									for(int i = 1; i < playerList.size()-1; i++){
+										
+										// IN CASE OF TIE FOR LARGEST
+										if(playerList.get(i).getResult() == largest.getResult()){
+											
+											int rand = (int)Math.random();  // Result is either 0 or 1
+											
+											if(rand == 1){
+												largest = playerList.get(i);
+											}
+											
+										// NEXT PLAYER HAS HIGHER RESULT	
+										}else if(playerList.get(i).getResult() > largest.getResult()){
+											largest = playerList.get(i);
+										}
+										
+										
+										
+										// IN CASE OF TIE FOR SMALLEST
+										if(playerList.get(i).getResult() == smallest.getResult()){
+											int rand = (int)Math.random();  // Result is either 0 or 1
+											
+											if(rand == 1){
+												smallest = playerList.get(i);
+											}
+											
+										// NEXT PLAYER HAS LOWER RESULT
+										}else if(playerList.get(i).getResult() < smallest.getResult()){
+											smallest = playerList.get(i);
+										}	
+									}
+								}
+								
+								try{
+									message.reply("@" + smallest.getPlayerID() + "  owes " + " gold to " + "@" + largest.getPlayerID() + "  !!");
+								}catch(NullPointerException e){
+									message.reply("AN ILLUSION!   Resetting.");
+									resetGame();
+								}
 								break;
 							default: 
-								message.reply("Something's not right...");
+								message.reply("Something's not right... Resetting.");
+								
+								resetGame();
 								break;
 
 							}
@@ -174,6 +230,16 @@ public class GoldGameBot {
 			}
 		});
 
+	}
+	
+	private static int rolled(){
+		int roll = 0;
+		
+		return roll;
+	}
+	
+	private static void resetGame(){
+		
 	}
 
 }
