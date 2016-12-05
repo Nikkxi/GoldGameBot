@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Random;
 
 import com.google.common.util.concurrent.FutureCallback;
 
@@ -22,7 +23,7 @@ public class GoldGameBot {
 	private static boolean isGameRunning = false;
 	private static boolean isBetSet = false;
 	private static boolean isGameClosed = false;
-	private static int betAmount;
+	private static int betAmount = 0;
 	private static List<Player> playerList;
 	private static int numPlayersRolled = 0;
 
@@ -68,34 +69,38 @@ public class GoldGameBot {
 					public void onMessageCreate(DiscordAPI api, Message message){
 
 						boolean isBound = false;
+						boolean fromBoundChannel = false;
+						
 						if(!boundChannel.isEmpty())
 							isBound = true;
 
-						boolean fromBoundChannel = false;
-						if(message.getReceiver().getId().equalsIgnoreCase(boundChannel))
+						if(message.getReceiver().getId().equalsIgnoreCase(boundChannel) || !isBound)
 							fromBoundChannel = true;
 
 
 						// START GOLD GAME
-						if(isBound && fromBoundChannel && message.getContent().toUpperCase().startsWith(commandPrefix + "GOLDGAME")){
+						if(fromBoundChannel && message.getContent().toUpperCase().startsWith(commandPrefix + "GOLDGAME")){
 
 							String action = message.getContent().toUpperCase().substring(10);
 							System.out.println("Action = " + action);
 							
-							
 							int command = 0;
 							
 							// DETERMINE WHICH COMMAND WAS USED
-							if(action.toUpperCase().contains("START")){
+							if(action.toUpperCase().startsWith("START")){
 								command = 1;
-							}else if(action.toUpperCase().contains("BET")){
+							}else if(action.toUpperCase().startsWith("BET")){
 								command = 2;
-							}else if(action.toUpperCase().contains("ADD")){
+							}else if(action.toUpperCase().startsWith("ADD")){
 								command = 3;
-							}else if(action.toUpperCase().contains("CLOSE")){
+							}else if(action.toUpperCase().startsWith("CLOSE")){
 								command = 4;
-							}else if(action.toUpperCase().contains("ROLL")){
+							}else if(action.toUpperCase().startsWith("ROLL")){
 								command = 5;
+							}else if(action.toUpperCase().startsWith("RESET")){
+								command = 6;
+							}else if(action.toUpperCase().startsWith("HELP")){
+								command = 7;
 							}
 							
 							// EXECUTE THE COMMAND
@@ -104,10 +109,10 @@ public class GoldGameBot {
 							case 1: // START
 								if(!isGameRunning){
 									isGameRunning = true;
-									message.reply("Starting a new GoldGame.  Please specify a bet amount using '"
+									message.reply("Starting a new Gold Game.  Please specify a bet amount using '"
 											+ commandPrefix + "GOLDGAME BET <AMOUNT>'" );
 								}else{
-									message.reply("@" + message.getAuthor().getId() + " A GoldGame is already running!");
+									message.reply("@" + message.getAuthor().getId() + " A Gold Game is already running!");
 								}
 								break;
 							case 2: // BET
@@ -144,11 +149,13 @@ public class GoldGameBot {
 								break;
 							case 5: // ROLL
 								String playerID = message.getAuthor().getId();
-								int result = rolled();
+								Random generator = new Random();
+								int result = generator.nextInt(betAmount);
 								
 								for(int n = 0; n < playerList.size(); n++){
 									if(playerList.get(n).getPlayerID().equalsIgnoreCase(playerID)){
 										playerList.get(n).setResult(result);
+										numPlayersRolled++;
 									}
 								}
 								
@@ -199,14 +206,28 @@ public class GoldGameBot {
 								try{
 									message.reply("@" + smallest.getPlayerID() + "  owes " + " gold to " + "@" + largest.getPlayerID() + "  !!");
 								}catch(NullPointerException e){
-									message.reply("AN ILLUSION!   Resetting.");
-									resetGame();
+									message.reply("AN ILLUSION! WHAT ARE YOU HIDING? (Something went wrong - resetting...)");
 								}
+								resetGame();
+								break;
+							case 6:  // RESET
+								resetGame();
+								break;
+							case 7:  // HELP
+								message.reply("Welcome to the GoldGameBot HELP.  Here are the available commands: \n" +
+										"START - starts a new round of the Gold Game. \n" +
+										"BET <Amount> - sets the amount of gold to be bet (game must be running). \n" +
+										"ADD - use this command to join the current round! \n" +
+										"CLOSE - ends regestration (once at least 2 players have joined) and begins the ROLL. GLHF! \n" +
+										"ROLL - use this command to ROLL! \n\n" +
+										"Once all registered players have ROLLed, the bot will display the result. \n\n" +
+										"Additional Commands: \n" +
+										"RESET - ends the current game. You will then be able to START a new game."
+										);
 								break;
 							default: 
-								message.reply("Something's not right... Resetting.");
+								message.reply("Something's not right... That command was not recognized.");
 								
-								resetGame();
 								break;
 
 							}
@@ -232,13 +253,14 @@ public class GoldGameBot {
 
 	}
 	
-	private static int rolled(){
-		int roll = 0;
-		
-		return roll;
-	}
-	
 	private static void resetGame(){
+		
+		isGameRunning = false;
+		isBetSet = false;
+		isGameClosed = false;
+		betAmount = 0;
+		playerList.clear();
+		numPlayersRolled = 0;
 		
 	}
 
