@@ -56,11 +56,11 @@ public class GoldGameBot {
 		final String commandPrefix = prop.getProperty("CommandPrefix");
 		final String allowedToReset = prop.getProperty("canReset");
 
-		System.out.println();
-
+		whoCanReset = new ArrayList<String>();
 		if(allowedToReset.contains(",")){
+			String[] split = allowedToReset.split(",");
 			for(int a = 0; a < allowedToReset.split(",").length; a++){
-				whoCanReset.add(allowedToReset.split(",")[a]);
+				whoCanReset.add(split[a]);
 			}
 		}else if(!allowedToReset.isEmpty()){
 			whoCanReset.add(allowedToReset);
@@ -83,7 +83,6 @@ public class GoldGameBot {
 				api.registerListener(new MessageCreateListener(){
 					public void onMessageCreate(DiscordAPI api, Message message){
 
-						System.out.println("1 - received message");
 						boolean isBound = false;
 						boolean fromBoundChannel = false;
 						String playerId = message.getAuthor().getId();
@@ -91,19 +90,14 @@ public class GoldGameBot {
 						if(!boundChannel.isEmpty())
 							isBound = true;
 
-						System.out.println("2 - isBoundChannel - " + isBound);
-
 						if(message.getReceiver().getId().equalsIgnoreCase(boundChannel) || !isBound)
 							fromBoundChannel = true;
-
-						System.out.println("3 - fromBoundChannel = " + fromBoundChannel);
-
 
 						// START GOLD GAME
 						if(fromBoundChannel && message.getContent().toUpperCase().startsWith(commandPrefix + "GOLDGAME")){
 
 							String action = null;
-							int command = 0;
+							int command = 7;
 
 							// DETERMINE WHICH COMMAND WAS USED
 							try{
@@ -127,8 +121,7 @@ public class GoldGameBot {
 							}catch(Exception e){
 								//message.reply("No command was recognized.  Please try again.");
 							}
-							System.out.println("Action = " + action);
-
+							
 							// EXECUTE THE COMMAND
 							switch(command){
 
@@ -136,7 +129,7 @@ public class GoldGameBot {
 								if(!isGameRunning){
 									isGameRunning = true;
 									gameOwner = message.getAuthor().getId();
-									message.reply("Starting a new Gold Game.  Please specify a bet amount using '"
+									message.reply("Starting a new Gold Game, run by <@" + gameOwner + ">.  Please specify a bet amount using '"
 											+ commandPrefix + "GOLDGAME BET <AMOUNT>'" );
 								}else{
 									message.reply("<@" + playerId + "> A Gold Game is already running!");
@@ -184,7 +177,6 @@ public class GoldGameBot {
 										}
 									}									
 								}else{
-
 									if(isGameRunning && isBetSet && isRegistrationClosed)
 										message.reply("<@" + playerId + "> Registration for this round has already closed.");
 									else if(!isBetSet && isGameRunning)
@@ -193,8 +185,6 @@ public class GoldGameBot {
 										message.reply("<@" + playerId + "> There is no Gold Game currently running.");
 									else
 										message.reply("Something went wrong... (ERROR 01)");
-
-									//message.reply("<@" + playerId + "> Something happened and you were unable to be added to the current round.");
 								}
 								break;
 							case 4: // CLOSE
@@ -247,11 +237,9 @@ public class GoldGameBot {
 											if(playerList.get(i).getResult() == largest.getResult()){
 
 												int rand = (int)Math.random();  // Result is either 0 or 1
-												System.out.println("Tie for the largest rand roll = " + rand);
 
 												if(rand == 1){
 													largest = playerList.get(i);
-													System.out.println("The player who won the tie is " + largest.getPlayerID());
 												}
 
 												// NEXT PLAYER HAS HIGHER RESULT	
@@ -264,11 +252,9 @@ public class GoldGameBot {
 											// IN CASE OF TIE FOR SMALLEST
 											if(playerList.get(i).getResult() == smallest.getResult()){
 												int rand = (int)Math.random();  // Result is either 0 or 1
-												System.out.println("Tie for the lowest rand roll = " + rand);
 
 												if(rand == 1){
 													smallest = playerList.get(i);
-													System.out.println("the player who won the tie is " + smallest.getPlayerID());
 												}
 
 												// NEXT PLAYER HAS LOWER RESULT
@@ -325,17 +311,18 @@ public class GoldGameBot {
 								break;
 							case 6:  // RESET
 								String author = message.getAuthor().getId();
-								if(whoCanReset.size() > 0){
+								if(!whoCanReset.isEmpty()){
 									for(int k = 0; k < whoCanReset.size(); k++){
 										if(author.equalsIgnoreCase(whoCanReset.get(k)))
 											resetGame();
+											message.reply("The Gold Game has ended!");
 									}
-								}
-
-								if(author.equalsIgnoreCase(gameOwner))
+								}else if(author.equalsIgnoreCase(gameOwner)){
 									resetGame();
-
-								message.reply("The Gold Game has ended!");
+									message.reply("The Gold Game has ended!");
+								}else{
+									message.reply("<@" + playerId + "> you do not have permissions to reset the Gold Game.");
+								}
 								break;
 							case 7:  // HELP
 								message.reply("Welcome to the GoldGameBot HELP.  Here are the available commands: \n" +
