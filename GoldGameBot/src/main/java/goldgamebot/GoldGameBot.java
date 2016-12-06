@@ -26,6 +26,8 @@ public class GoldGameBot {
 	private static int betAmount = 0;
 	private static List<Player> playerList;
 	private static int numPlayersRolled = 0;
+	private static String gameOwner;
+	private static String[] whoCanReset = null;
 
 
 	public static void main(String[] args) {
@@ -52,7 +54,14 @@ public class GoldGameBot {
 		final String token = prop.getProperty("token");
 		final String boundChannel = prop.getProperty("bindToChannel");
 		final String commandPrefix = prop.getProperty("CommandPrefix");
-
+		final String allowedToReset = prop.getProperty("canReset");
+		
+		
+		if(allowedToReset.contains(",")){
+			whoCanReset = allowedToReset.split(",");
+		}else{
+			whoCanReset[0] = allowedToReset;
+		}
 
 		DiscordAPI api = Javacord.getApi(token, true);
 		api.setGame("GoldGameBot");
@@ -110,16 +119,15 @@ public class GoldGameBot {
 							case 1: // START
 								if(!isGameRunning){
 									isGameRunning = true;
+									gameOwner = message.getAuthor().getId();
 									message.reply("Starting a new Gold Game.  Please specify a bet amount using '"
 											+ commandPrefix + "GOLDGAME BET <AMOUNT>'" );
-									
-									// TODO Need to add the ability to track who started the current round.
 								}else{
 									message.reply("@" + playerId + " A Gold Game is already running!");
 								}
 								break;
 							case 2: // BET
-								if(isGameRunning){
+								if(isGameRunning && message.getAuthor().getId().equalsIgnoreCase(gameOwner)){
 									try{
 										betAmount = Integer.parseInt(message.getContent().substring(14));
 									}catch(Exception e){
@@ -130,6 +138,8 @@ public class GoldGameBot {
 									message.reply("Bet amount for the current game is now set to " + betAmount + " gold.\n"
 											+ "To join the current Gold Game, please use the command '" + commandPrefix + 
 											"GOLDGAME JOIN'" );
+								}else if(isGameRunning){
+									message.reply("@" + playerId + " You do not have permission to set the bet amount for this round.");
 								}else{
 									message.reply("@" + playerId + " No Gold Game is currently in-progress.");
 								}
@@ -151,11 +161,14 @@ public class GoldGameBot {
 								}
 								break;
 							case 4: // CLOSE
-								if(isBetSet && isGameRunning && (playerList.size() >= 2) ){
+								boolean isOwner = message.getAuthor().getId().equalsIgnoreCase(gameOwner);
+								if(isBetSet && isGameRunning && (playerList.size() >= 2) && isOwner){
 									isRegistrationClosed = true;
 									message.reply("Registration for this round is now closed!  Roll using '" + commandPrefix + "GOLDGAME ROLL'");
 								}else{
-									if(isBetSet && isGameRunning)
+									if(!message.getAuthor().getId().equalsIgnoreCase(gameOwner))
+										message.reply("@" + playerId + " You do not have permissions to close registration for the current round.");
+									else if(isBetSet && isGameRunning && (playerList.size() < 2))
 										message.reply("@" + playerId + " Not enough players have joined this round yet!");
 									else if(isGameRunning)
 										message.reply("@" + playerId + " The bet amount has not been set yet!");
@@ -244,7 +257,15 @@ public class GoldGameBot {
 
 								break;
 							case 6:  // RESET
-								resetGame();
+								String author = message.getAuthor().getId();
+								for(int k = 0; k < whoCanReset.length; k++){
+									if(author.equalsIgnoreCase(whoCanReset[k]))
+										resetGame();
+								}
+								
+								if(message.getAuthor().getId().equalsIgnoreCase(gameOwner))
+									resetGame();
+								
 								break;
 							case 7:  // HELP
 								message.reply("Welcome to the GoldGameBot HELP.  Here are the available commands: \n" +
