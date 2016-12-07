@@ -312,12 +312,24 @@ public class GoldGameBot {
 							case 6:  // RESET
 								String author = message.getAuthor().getId();
 								if(!whoCanReset.isEmpty()){
+									System.out.println("RESET: checking inside first IF statement");
 									for(int k = 0; k < whoCanReset.size(); k++){
-										if(author.equalsIgnoreCase(whoCanReset.get(k)))
+										System.out.println("RESET: checking inside FOR loop.  K=" + k);
+										if(author.equalsIgnoreCase(whoCanReset.get(k))){
+											System.out.println("Inside reset loop IF statement. \n" +
+															"k: " + k + "\n" +
+															"author: " + author + "\n" +
+															"whoCanReset: " + whoCanReset.get(k) + "\n\n"
+															);
 											resetGame();
 											message.reply("The Gold Game has ended!");
+											break;
+										}
 									}
-								}else if(author.equalsIgnoreCase(gameOwner)){
+								}
+								
+								if(author.equalsIgnoreCase(gameOwner)){
+									System.out.println("Game is being reset by owner.");
 									resetGame();
 									message.reply("The Gold Game has ended!");
 								}else{
@@ -372,6 +384,15 @@ public class GoldGameBot {
 		betAmount = 0;
 		playerList.clear();
 		numPlayersRolled = 0;
+		
+		System.out.println("Game has been reset. \n" +
+					"isGameRunning: " + isGameRunning + "\n" +
+					"isBetSet: " + isBetSet + "\n" +
+					"isRegistrationClosed: " + isRegistrationClosed + "\n" +
+					"betAmount: " + betAmount + "\n" +
+					"playerList empty: " + playerList.isEmpty() + "\n" +
+					"numPlayersRolled: " + numPlayersRolled
+					);
 
 	}
 
